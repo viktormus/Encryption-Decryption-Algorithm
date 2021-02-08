@@ -20,18 +20,23 @@ var decimals = "1415926535897932384626433832795028841971693993751058209749445923
 
 console.log("Enter the text that you want to encrypt:");
 
-var text = "katso tommi millaisen salauslaitteen minä keksin";
+//var text = "katso tommi millaisen salauslaitteen minä keksin";
 //var text = "testi 69 ja ''ei'' kai siinä muuta! se sitten vielä tästä mojresta GaiGille 1234567890 .,ö<z'¨´+?=)(!#!¤%&>"
 //var text = "moro kaikille ette saa ikinä tätä ratkastua lol";
+//var text = "NONII! Siinä se sitten ois - ensimmäinen kaiken kattava versio. Tää kattaa kaikki kirjaimet, numerot ja merkit. Pieniä rajoitteita on, esim backwards slash & heittomerkit KIELLETYTJÄ! t. Viki99";
+//var text = "Volume today!? Mayb 18000 pkgs..."
+var text = "Et saa 1k1nä ratkastua tätä Eemeli!";
 
-text = text.toLowerCase();
+
 text = text.trim();
 
 var alphabet = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "å", "ä", "ö", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j"];
 
-var symbols = [".", ",", "!", "?", ":", ";", "'", "-", "_", "(", ")", "=", "+", "%", "&", "/", "#", "@", "<", ">"];
+var symbols = [".", ",", "!", "?", ":", ";", "*", "'", "-", "_", "(", ")", "=", "+", "%", "&", "/", "#", "@", "<", ">", "|", "£", "$", "¤", "~", "[", "]", "{", "}", "/", "^", "§", "½"];
 
 var numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+var metadata = [];
 
 var textChar = [];
 
@@ -46,9 +51,10 @@ function randomizer() {
 function splitText(item) {
 	textChar = [];
 	for (i = 0; i < item.length; i++) {
-		textChar.push(text[i]);
+		textChar.push(item[i]);
 	}
 }
+splitText(text);
 
 //Some printing
 function iterate() {
@@ -91,9 +97,137 @@ function scan() {
 var key = 0;
 function keyGen() {
 	key = words * letters - letters;
+	if (key > 3000) {
+		key = Math.floor(key / 10);
+	}
 	console.log("Key: " + key);
 	return key;
 }
+
+//Stript text of metadata
+//numbers [#1 position, #2 number]
+//symbols [#1 position, #2 symbol number]
+//uppercase [just position])
+function extractMetadata() {
+	splitText(text);
+	var tempList = [];
+	var tempNumbers = [];
+	var tempUpperCase = [];
+	var tempSymbols = [];
+
+	for (i = 0; i < textChar.length; i++) {
+		var one = textChar[i].toLowerCase();
+		var two = textChar[i].toUpperCase();
+		if (isNaN(textChar[i]) && one == two && textChar[i] != " ") {
+//			console.log(textChar[i] + " == " + textChar[i].charCodeAt());
+			tempSymbols.unshift(textChar[i].charCodeAt());
+			tempSymbols.unshift(i);
+			textChar.splice(i, 1);
+			i = -1;
+		}
+	}
+
+//	console.log("tempSymbols");
+//	console.log(tempSymbols);
+
+	for (i = 0; i < textChar.length; i++) {
+		if (!isNaN(textChar[i]) && textChar[i] != " ") {
+			tempNumbers.unshift(parseInt(textChar[i]));
+			tempNumbers.unshift(i);
+			textChar.splice(i, 1);
+			i = -1;
+		}
+	}
+
+//	console.log("tempNumbers");
+//	console.log(tempNumbers);
+
+	for (i = 0; i < textChar.length; i++) {
+		if (textChar[i] == textChar[i].toUpperCase() && textChar[i] != " ") {
+			tempUpperCase.push(i);
+			textChar[i] = textChar[i].toLowerCase();
+		}
+	}
+
+//	console.log("tempUpperCase");
+//	console.log(tempUpperCase);
+
+	tempUpperCase.unshift(tempUpperCase.length);
+	metadata = metadata.concat(tempUpperCase)
+
+	tempNumbers.unshift(tempNumbers.length);
+	metadata = metadata.concat(tempNumbers);
+
+	tempSymbols.unshift(tempSymbols.length);
+	metadata = metadata.concat(tempSymbols);
+
+	console.log(metadata);
+}
+extractMetadata();
+
+
+//Encrypt metadata
+
+function encryptMetadata() {
+	var tempList = [];
+	var mKey = metadata.length;
+	for (i = 0; i < metadata.length; i++) {
+		var textN = metadata[i].toString();
+		for (j = 0; j < textN.length; j++) {
+			var sum = parseInt(textN[j]) + parseInt(decimals[mKey + i]);
+//			console.log(textN[j] + " + " + parseInt(decimals[mKey + i]) + " = " + sum);
+			var textSum = sum.toString();
+			if (sum > 9) {			
+				textSum = textSum[1];
+			}
+//			console.log(textSum);
+			tempList.push(textSum);
+		}
+		metadata.splice(i, 1, tempList.join(""));
+		tempList = [];
+	}
+}
+encryptMetadata()
+
+//Relevant number position amidst metadata mix
+function numberPos(wl) {
+	switch(true) {
+	  case (wl == 1):
+	  	long = 5;
+	  	return 3;
+	  case (wl == 2):
+	  	long = 3;
+	  	return 1;
+//	  case (wl == 3):
+//	  	long = 3;
+//	  	return 0;
+	}
+}
+
+//Second layer of metadata encryption
+var long = 0;
+function mixMetadata() {
+	var tempList = [];
+	for (i = 0; i < metadata.length; i++) {
+		tempList = [];
+		if (metadata[i].length < 3) {
+			var pos = numberPos(metadata[i].length);
+			for (j = 0; j < long; j++) {
+				if (j == pos) {
+					tempList.push(metadata[i]);
+				} else {
+					var anyNum = Math.floor(Math.random() * 10);
+					tempList.push(anyNum.toString());
+				}
+			}
+			metadata.splice(i, 1, tempList.join(""));
+		}
+		
+	}
+}
+mixMetadata();
+console.log(...metadata);
+
 
 //Relevant letter positions amidst gibberish
 function posBasedOnLength(wl) {
@@ -178,14 +312,7 @@ function encryptTwo() {
 }
 
 var test = randomizer();
-//console.log(test);
-splitText(text);
-//console.log(textChar);
 scan();
-//console.log(words);
-//console.log(iLetters);
-//console.log(wordLengths);
-//console.log(letters);
 console.log("---");
 console.log(text);
 keyGen();
@@ -195,7 +322,8 @@ encryptTwo();
 console.log("---");
 console.log(text);
 console.log("---");
-console.log(...gibberish);
+var everything = metadata.concat(gibberish);
+console.log(...everything);
 console.log("---");
 
 
@@ -237,3 +365,83 @@ function decryptOne() {
 	console.log(clearText);
 }
 decryptOne();
+
+
+//Remove fake numbers from metadata
+function unmixMetadata() {
+	for (i = 0; i < metadata.length; i++) {
+		if (metadata[i].length == 4) {
+			var find = metadata[i][1] + [metadata[i][2]];
+			metadata.splice(i, 1, find);
+		}
+		if (metadata[i].length == 5) {
+			metadata.splice(i, 1, metadata[i][3]);
+		}
+	}
+}
+unmixMetadata();
+
+
+//Decrypt metadata
+function decryptMetadata() {
+	var tempList = [];
+	var mKey = metadata.length;
+	for (i = 0; i < metadata.length; i++) {
+		var textN = metadata[i];
+		for (j = 0; j < textN.length; j++) {
+			var sumRev = parseInt(textN[j]) - parseInt(decimals[mKey + i])
+			if (sumRev < 0) {
+				sumRev += 10;
+			}
+			tempList.push(sumRev.toString());
+		}
+		metadata.splice(i, 1, parseInt(tempList.join("")));
+		tempList = [];
+	}
+}
+decryptMetadata();
+
+
+//Bring back uppercase letters, numbers and symbols
+var finalText = "";
+function restoreMetadata() {
+	splitText(clearText);
+	var add = 1;
+	var phase = 0;
+	for (i = 0; i < metadata.length; i += add) {
+		add = metadata[i] + 1;
+		phase++;
+		switch (true) {
+		  case(phase == 1):
+		  	console.log("---");
+		  	console.log(">>Inserting capital letters back");
+		  	for (j = i + 1; j < i + add; j++) {
+				textChar[metadata[j]] = textChar[metadata[j]].toUpperCase();
+			}
+			finalText = textChar.join("");
+//			console.log(finalText);
+			break;
+		  case(phase == 2):
+//		  	console.log("---");
+		  	console.log(">>Inserting numbers back");
+		  	for (j = i + 1; j < i + add; j += 2) {
+		  		textChar.splice(metadata[j], 0, metadata[j + 1]);
+		  	}
+		  	finalText = textChar.join("");
+//			console.log(finalText);
+		  	break;
+		  case(phase == 3):
+//		  	console.log("---");
+		  	console.log(">>Inserting symbols back");
+		  	for (j = i + 1; j < i + add; j += 2) {
+		  		textChar.splice(metadata[j], 0, String.fromCharCode(metadata[j + 1]));
+		  	}
+		  	finalText = textChar.join("");
+		  	console.log("---");
+			console.log(finalText);
+		  	break;
+		}
+		
+	}
+}
+restoreMetadata();
